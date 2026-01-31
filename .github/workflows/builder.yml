@@ -262,7 +262,8 @@ jobs:
   #         path: windows-clib.7z
 
   release:
-    needs: [ ubuntu1804, macos1015, windows-vs2019 ]
+    #, windows-vs2019 
+    needs: [ ubuntu2204, macos1015]
 
     runs-on: ubuntu-latest
 
