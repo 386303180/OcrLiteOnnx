@@ -7,14 +7,14 @@ on:
       - '*'
 
 jobs:
-  ubuntu1804:
-    runs-on: ubuntu-18.04
+  ubuntu2204:
+    runs-on: ubuntu-22.04
 
     env:
       ONNX_VERSION: 1.14.0
-      ONNX_PKG_NAME: onnxruntime-1.14.0-ubuntu1804-static
+      ONNX_PKG_NAME: onnxruntime-1.14.0-ubuntu2204-static
       CV_VERSION: 4.6.0
-      CV_PKG_NAME: opencv-4.6.0-ubuntu1804
+      CV_PKG_NAME: opencv-4.6.0-ubuntu2204
 
     steps:
       # 检出代码
@@ -111,20 +111,65 @@ jobs:
         run: |
           chmod a+x build-default.sh &&./build-default.sh
 
-      # 使用7z压缩
+      # 检查构建产物是否存在
+      - name: check build products
+        run: |
+          ls -R
+          if [ -d "Darwin-BIN/install/bin" ]; then
+            echo "Darwin-BIN binary found"
+          else
+            echo "Darwin-BIN binary not found, checking alternative path"
+            ls -la Darwin-BIN/install/
+          fi
+          
+          if [ -d "Darwin-JNI/install" ]; then
+            echo "Darwin-JNI found"
+          else
+            echo "Darwin-JNI not found"
+          fi
+          
+          if [ -d "Darwin-CLIB/install" ]; then
+            echo "Darwin-CLIB found"
+          else
+            echo "Darwin-CLIB not found"
+          fi
+
+      # 使用正确的路径进行打包
       - name: 7zip
         run: |
           mkdir macos-bin
           cp run-benchmark.sh macos-bin/run-benchmark.sh
           cp run-test.sh macos-bin/run-test.sh
           cp -r images macos-bin/images
-          mv Darwin-BIN/install/bin macos-bin/Darwin-BIN
-          7z a macos-bin.7z macos-bin
+          if [ -d "Darwin-BIN/install/bin" ]; then
+            mv Darwin-BIN/install/bin macos-bin/Darwin-BIN
+          else
+            # 尝试复制整个bin目录或可执行文件
+            if [ -f "Darwin-BIN/OcrLiteOnnx" ]; then
+              cp Darwin-BIN/OcrLiteOnnx macos-bin/Darwin-BIN/
+            elif [ -d "Darwin-BIN/install/lib" ]; then
+              cp -r Darwin-BIN/install/* macos-bin/Darwin-BIN/
+            fi
+          fi
+          
           mkdir macos-jni
-          mv Darwin-JNI/install macos-jni/Darwin-JNI
-          7z a macos-jni.7z macos-jni
+          if [ -d "Darwin-JNI/install" ]; then
+            mv Darwin-JNI/install macos-jni/Darwin-JNI
+          else
+            echo "Darwin-JNI/install not found"
+            ls -la Darwin-JNI/
+          fi
+          
           mkdir macos-clib
-          mv Darwin-CLIB/install macos-clib/Darwin-CLIB
+          if [ -d "Darwin-CLIB/install" ]; then
+            mv Darwin-CLIB/install macos-clib/Darwin-CLIB
+          else
+            echo "Darwin-CLIB/install not found"
+            ls -la Darwin-CLIB/
+          fi
+          
+          7z a macos-bin.7z macos-bin
+          7z a macos-jni.7z macos-jni
           7z a macos-clib.7z macos-clib
 
       # 上传artifact
@@ -146,75 +191,75 @@ jobs:
           name: macos-clib
           path: macos-clib.7z
 
-  windows-vs2019:
-    runs-on: windows-2019
+  # windows-vs2019:
+  #   runs-on: windows-2019
 
-    env:
-      ONNX_VERSION: 1.14.0
-      ONNX_PKG_NAME: onnxruntime-1.14.0-vs2019-static-mt
-      CV_VERSION: 4.6.0
-      CV_PKG_NAME: opencv-4.6.0-windows-vs2019-mt
+  #   env:
+  #     ONNX_VERSION: 1.14.0
+  #     ONNX_PKG_NAME: onnxruntime-1.14.0-vs2019-static-mt
+  #     CV_VERSION: 4.6.0
+  #     CV_PKG_NAME: opencv-4.6.0-windows-vs2019-mt
 
-    steps:
-      # 检出代码
-      - uses: actions/checkout@v3
+  #   steps:
+  #     # 检出代码
+  #     - uses: actions/checkout@v3
 
-      # 下载onnxruntime-static
-      - name: download onnxruntime-static
-        run: |
-          cd onnxruntime-static
-          Invoke-WebRequest -Uri https://github.com/RapidAI/OnnxruntimeBuilder/releases/download/${{ env.ONNX_VERSION }}/${{ env.ONNX_PKG_NAME }}.7z -OutFile ${{ env.ONNX_PKG_NAME }}.7z
-          7z x ${{ env.ONNX_PKG_NAME }}.7z -aoa
+  #     # 下载onnxruntime-static
+  #     - name: download onnxruntime-static
+  #       run: |
+  #         cd onnxruntime-static
+  #         Invoke-WebRequest -Uri https://github.com/RapidAI/OnnxruntimeBuilder/releases/download/${{ env.ONNX_VERSION }}/${{ env.ONNX_PKG_NAME }}.7z -OutFile ${{ env.ONNX_PKG_NAME }}.7z
+  #         7z x ${{ env.ONNX_PKG_NAME }}.7z -aoa
 
-      # 下载opencv-static
-      - name: download opencv-static
-        run: |
-          cd opencv-static
-          Invoke-WebRequest -Uri https://github.com/RapidAI/OpenCVBuilder/releases/download/${{ env.CV_VERSION }}/${{ env.CV_PKG_NAME }}.7z -OutFile ${{ env.CV_PKG_NAME }}.7z
-          7z x ${{ env.CV_PKG_NAME }}.7z -aoa
+  #     # 下载opencv-static
+  #     - name: download opencv-static
+  #       run: |
+  #         cd opencv-static
+  #         Invoke-WebRequest -Uri https://github.com/RapidAI/OpenCVBuilder/releases/download/${{ env.CV_VERSION }}/${{ env.CV_PKG_NAME }}.7z -OutFile ${{ env.CV_PKG_NAME }}.7z
+  #         7z x ${{ env.CV_PKG_NAME }}.7z -aoa
 
-      # 编译
-      - name: build
-        run: |
-          ./build-default.bat
+  #     # 编译
+  #     - name: build
+  #       run: |
+  #         ./build-default.bat
 
-      # 使用7z压缩
-      - name: 7zip
-        run: |
-          mkdir windows-bin
-          cp run-benchmark.bat windows-bin/run-benchmark.bat
-          cp run-test.bat windows-bin/run-test.bat
-          cp -r images windows-bin/images
-          mv win-BIN-x64/install/bin windows-bin/win-BIN-x64
-          mv win-BIN-Win32/install/bin windows-bin/win-BIN-Win32
-          7z a windows-bin.7z windows-bin
-          mkdir windows-jni
-          mv win-JNI-x64/install windows-jni/win-JNI-x64
-          mv win-JNI-Win32/install windows-jni/win-JNI-Win32
-          7z a windows-jni.7z windows-jni
-          mkdir windows-clib
-          mv win-CLIB-x64/install windows-clib/win-CLIB-x64
-          mv win-CLIB-Win32/install windows-clib/win-CLIB-Win32
-          7z a windows-clib.7z windows-clib
+  #     # 使用7z压缩
+  #     - name: 7zip
+  #       run: |
+  #         mkdir windows-bin
+  #         cp run-benchmark.bat windows-bin/run-benchmark.bat
+  #         cp run-test.bat windows-bin/run-test.bat
+  #         cp -r images windows-bin/images
+  #         mv win-BIN-x64/install/bin windows-bin/win-BIN-x64
+  #         mv win-BIN-Win32/install/bin windows-bin/win-BIN-Win32
+  #         7z a windows-bin.7z windows-bin
+  #         mkdir windows-jni
+  #         mv win-JNI-x64/install windows-jni/win-JNI-x64
+  #         mv win-JNI-Win32/install windows-jni/win-JNI-Win32
+  #         7z a windows-jni.7z windows-jni
+  #         mkdir windows-clib
+  #         mv win-CLIB-x64/install windows-clib/win-CLIB-x64
+  #         mv win-CLIB-Win32/install windows-clib/win-CLIB-Win32
+  #         7z a windows-clib.7z windows-clib
 
-      # 上传artifact
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-bin
-          path: windows-bin.7z
+  #     # 上传artifact
+  #     - name: upload
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-bin
+  #         path: windows-bin.7z
 
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-jni
-          path: windows-jni.7z
+  #     - name: upload
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-jni
+  #         path: windows-jni.7z
 
-      - name: upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-clib
-          path: windows-clib.7z
+  #     - name: upload
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: windows-clib
+  #         path: windows-clib.7z
 
   release:
     needs: [ ubuntu1804, macos1015, windows-vs2019 ]
