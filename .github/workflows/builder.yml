@@ -12,9 +12,9 @@ jobs:
 
     env:
       ONNX_VERSION: 1.14.0
-      ONNX_PKG_NAME: onnxruntime-1.14.0-ubuntu2204-static
+      ONNX_PKG_NAME: onnxruntime-1.14.0-ubuntu1804-static
       CV_VERSION: 4.6.0
-      CV_PKG_NAME: opencv-4.6.0-ubuntu2204
+      CV_PKG_NAME: opencv-4.6.0-ubuntu1804
 
     steps:
       # 检出代码
