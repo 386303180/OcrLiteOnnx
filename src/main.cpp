@@ -21,6 +21,7 @@ void printHelp(FILE *out, char *argv0) {
     fprintf(out, " ------- Examples -------\n");
     fprintf(out, example1Msg, argv0);
     fprintf(out, example2Msg, argv0);
+    fprintf(out, example3Msg, argv0);
 }
 
 int main(int argc, char **argv) {
@@ -46,7 +47,8 @@ int main(int argc, char **argv) {
 
     int opt;
     int optionIndex = 0;
-    while ((opt = getopt_long(argc, argv, "d:1:2:3:4:i:t:p:s:b:o:u:a:A:v:h", long_options, &optionIndex)) != -1) {
+    bool noResult = false;
+    while ((opt = getopt_long(argc, argv, "d:1:2:3:4:i:t:p:s:b:o:u:a:A:n:v:h", long_options, &optionIndex)) != -1) {
         //printf("option(-%c)=%s\n", opt, optarg);
         switch (opt) {
             case 'd':
@@ -117,6 +119,9 @@ int main(int argc, char **argv) {
                 }
                 //printf("mostAngle=%d\n", mostAngle);
                 break;
+            case 'n':
+                noResult = true;
+                break;
             case 'v':
                 printf("%s\n", VERSION);
                 return 0;
@@ -169,9 +174,11 @@ int main(int argc, char **argv) {
     ocrLite.initLogger(
             true,//isOutputConsole
             false,//isOutputPartImg
-            true);//isOutputResultImg
+            !noResult);//isOutputResultImg
 
-    ocrLite.enableResultTxt(imgDir.c_str(), imgName.c_str());
+    if (!noResult) {
+        ocrLite.enableResultTxt(imgDir.c_str(), imgName.c_str());
+    }
     ocrLite.Logger("=====Input Params=====\n");
     ocrLite.Logger(
             "numThread(%d),padding(%d),maxSideLen(%d),boxScoreThresh(%f),boxThresh(%f),unClipRatio(%f),doAngle(%d),mostAngle(%d)\n",
